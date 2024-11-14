@@ -26,7 +26,7 @@ window.AudioContext = window.AudioContext || window.webkitAudioContext;
 
 $(function(){
 	// Global Variables
-	var audioContext = new AudioContext();
+	var audioContext;
 	var osc = null;
 	var options = {	start: true };
 	var needsReset = true;
@@ -173,6 +173,8 @@ $(function(){
 	};
 
 	window.start = function start(){
+		audioContext = new AudioContext();
+
 		if(needsReset && pitchDetector) {
 			pitchDetector.destroy();
 			pitchDetector = null;
