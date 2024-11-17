@@ -26,312 +26,324 @@ window.AudioContext = window.AudioContext || window.webkitAudioContext;
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-$(function(){
-	// Global Variables
-	var audioContext;
-	var osc = null;
-	var options = {	start: true };
-	var needsReset = true;
-	var pitchDetector = null;
-	var theBuffer = null;
+$(function () {
+  // Global Variables
+  var audioContext;
+  var osc = null;
+  var options = { start: true };
+  var needsReset = true;
+  var pitchDetector = null;
+  var theBuffer = null;
 
-	// Form Input Elements
-	var inputs = {
-		input: $('#input'),
-		notes: $('#notes'),
-		output: $('#output'),
-		length: $('#length'),
-		minRms: $('#minrms'),
-		normalize:  $('#normalize'),
-		detection: $('#detection'),
-		minCorrelationIncrease: $('#strength'),
-		minCorrelation: $('#correlation'),
-		range: $('#range'),
-		min: $('#min'),
-		max: $('#max'),
-		draw: $('#draw'),
-		stopAfterDetection: $('#stopAfterDetection')
-	};
+  // Form Input Elements
+  var inputs = {
+    input: $("#input"),
+    notes: $("#notes"),
+    output: $("#output"),
+    length: $("#length"),
+    minRms: $("#minrms"),
+    normalize: $("#normalize"),
+    detection: $("#detection"),
+    minCorrelationIncrease: $("#strength"),
+    minCorrelation: $("#correlation"),
+    range: $("#range"),
+    min: $("#min"),
+    max: $("#max"),
+    draw: $("#draw"),
+    stopAfterDetection: $("#stopAfterDetection"),
+  };
 
+  var data = JSON.parse(localStorage.getItem("pitch-detector-settings")) || {};
+  for (var x in data) {
+    inputs[x].val(data[x]);
+  }
 
-	var data = JSON.parse(localStorage.getItem('pitch-detector-settings')) || {};
-	for(var x in data){
-		inputs[x].val(data[x]);
-	}
+  // GUI Elements
+  var gui = {
+    detector: $("#detector"),
+    canvas: $("#waveform"),
+    pitch: $("#pitch"),
+    note: $("#note"),
+    detuneBox: $("#detune"),
+    detune: $("#detune_amt"),
+  };
 
-	// GUI Elements
-	var gui = {
-		detector: $('#detector'),
-		canvas: $('#waveform'),
-		pitch: $('#pitch'),
-		note: $('#note'),
-		detuneBox: $('#detune'),
-		detune: $('#detune_amt')
-	};
+  // Canvas Element
+  canvasEl = $("#waveform").get(0);
+  canvas = canvasEl.getContext("2d");
+  window.savePic = function () {
+    window.open(canvasEl.toDataURL("image/png"));
+  };
 
-	// Canvas Element
-	canvasEl = $("#waveform").get(0);
-	canvas = canvasEl.getContext("2d");
-	window.savePic = function(){
-		window.open(canvasEl.toDataURL("image/png"));
-	};
+  // Show/Hide Stuff on Form Change
+  inputs.input.change(function (e) {
+    needsReset = true;
+    var val = inputs.input.val();
+    if (val === "mic") {
+      $("#notes").removeClass("invisible");
+    } else {
+      $("#notes").addClass("invisible");
+    }
+  });
 
-	// Show/Hide Stuff on Form Change
-	inputs.input.change(function(e){
-		needsReset = true;
-		var val = inputs.input.val();
-		if(val === 'mic') {
-			$('#notes').removeClass('invisible');
-		} else {
-			$('#notes').addClass('invisible');
-		}
-	});
+  inputs.output.change(function (e) {
+    needsReset = true;
+  });
 
-	inputs.output.change(function(e){
-		needsReset = true;
-	});
+  inputs.length.change(function (e) {
+    needsReset = true;
+  });
 
-	inputs.length.change(function(e){
-		needsReset = true;
-	});
+  inputs.range.change(function (e) {
+    var val = inputs.range.val();
+    if (val !== "none") {
+      $(".range").removeClass("hidden");
+    } else {
+      $(".range").addClass("hidden");
+    }
+  });
 
-	inputs.range.change(function(e){
-		var val = inputs.range.val();
-		if(val !== 'none') {
-			$('.range').removeClass('hidden');
-		} else {
-			$('.range').addClass('hidden');
-		}
-	});
+  inputs.detection.change(function (e) {
+    var val = inputs.detection.val();
+    $(".strength").addClass("hidden");
+    $(".correlation").addClass("hidden");
+    if (val === "strength") {
+      $(".strength").removeClass("hidden");
+    } else if (val === "correlation") {
+      $(".correlation").removeClass("hidden");
+    }
+  });
 
-	inputs.detection.change(function(e){
-		var val = inputs.detection.val();
-		$('.strength').addClass('hidden');
-		$('.correlation').addClass('hidden');
-		if(val === 'strength') {
-			$('.strength').removeClass('hidden');
-		} else if(val === 'correlation') {
-			$('.correlation').removeClass('hidden');
-		}
-	});
+  // Drag & Drop audio files
+  var detectorElem = gui.detector.get(0);
+  detectorElem.ondragenter = function () {
+    this.classList.add("droptarget");
+    return false;
+  };
+  detectorElem.ondragleave = function () {
+    this.classList.remove("droptarget");
+    return false;
+  };
+  detectorElem.ondrop = function (e) {
+    this.classList.remove("droptarget");
+    e.preventDefault();
+    theBuffer = null;
 
-	// Drag & Drop audio files
-	var detectorElem = gui.detector.get(0);
-	detectorElem.ondragenter = function () { 
-		this.classList.add("droptarget"); 
-		return false; };
-	detectorElem.ondragleave = function () { this.classList.remove("droptarget"); return false; };
-	detectorElem.ondrop = function (e) {
-  		this.classList.remove("droptarget");
-  		e.preventDefault();
-		theBuffer = null;
+    var reader = new FileReader();
+    reader.onload = function (event) {
+      audioContext.decodeAudioData(
+        event.target.result,
+        function (buffer) {
+          theBuffer = buffer;
+        },
+        function () {
+          alert("error loading!");
+        }
+      );
+    };
+    reader.onerror = function (event) {
+      alert("Error: " + reader.error);
+    };
+    reader.readAsArrayBuffer(e.dataTransfer.files[0]);
+    return false;
+  };
 
-	  	var reader = new FileReader();
-	  	reader.onload = function (event) {
-	  		audioContext.decodeAudioData( event.target.result, function(buffer) {
-	    		theBuffer = buffer;
-	  		}, function(){alert("error loading!");} ); 
+  // Get example audio file
+  var request = new XMLHttpRequest();
+  request.open("GET", "./whistling3.ogg", true);
+  request.responseType = "arraybuffer";
+  request.onload = function () {
+    audioContext.decodeAudioData(request.response, function (buffer) {
+      theBuffer = buffer;
+      console.log("loaded audio");
+    });
+  };
+  request.send();
 
-	  	};
-	  	reader.onerror = function (event) {
-	  		alert("Error: " + reader.error );
-		};
-	  	reader.readAsArrayBuffer(e.dataTransfer.files[0]);
-	  	return false;
-	};
+  // Global Methods
+  window.stopNote = function stopNote() {
+    if (osc) {
+      osc.stop();
+      osc.disconnect();
+      osc = null;
+    }
+  };
 
-	// Get example audio file
-	var request = new XMLHttpRequest();
-	request.open("GET", "./whistling3.ogg", true);
-	request.responseType = "arraybuffer";
-	request.onload = function() {
-	  audioContext.decodeAudioData( request.response, function(buffer) { 
-	    	theBuffer = buffer;
-	    	console.log('loaded audio');
-		} );
-	};
-	request.send();
+  window.playNote = function playNote(freq) {
+    stopNote();
+    osc = audioContext.createOscillator();
+    osc.connect(audioContext.destination);
+    osc.frequency.value = freq;
+    osc.start(0);
+  };
 
-	// Global Methods
-	window.stopNote = function stopNote(){
-		if(osc) {
-			osc.stop();
-			osc.disconnect();
-			osc = null;
-		}
-	};
+  window.stop = function stop() {
+    if (pitchDetector) pitchDetector.destroy();
+    pitchDetector = null;
+  };
 
-	window.playNote = function playNote(freq){
-		stopNote();
-		osc = audioContext.createOscillator();
-		osc.connect(audioContext.destination);
-		osc.frequency.value = freq;
-		osc.start(0);
-	};
+  window.start = function start() {
+    audioContext = new AudioContext();
 
-	window.stop = function stop(){
-		if(pitchDetector) pitchDetector.destroy();
-		pitchDetector = null;
-	};
+    if (needsReset && pitchDetector) {
+      pitchDetector.destroy();
+      pitchDetector = null;
+    }
 
-	window.start = function start(){
-		audioContext = new AudioContext();
+    var input = inputs.input.val();
+    var sourceNode;
+    if (input === "osc") {
+      sourceNode = audioContext.createOscillator();
+      sourceNode.frequency.value = 440;
+      sourceNode.start(0);
+    } else if (input === "audio") {
+      sourceNode = audioContext.createBufferSource();
+      sourceNode.buffer = theBuffer;
+      sourceNode.loop = true;
+      sourceNode.start(0);
+    } else {
+      inputs.output.prop("checked", false);
+    }
+    options.input = sourceNode;
 
-		if(needsReset && pitchDetector) {
-			pitchDetector.destroy();
-			pitchDetector = null;
-		}
+    if (inputs.output.is(":checked")) {
+      options.output = audioContext.destination;
+    }
 
-		var input = inputs.input.val();
-		var sourceNode;
-		if(input === 'osc'){
-			sourceNode = audioContext.createOscillator();
-			sourceNode.frequency.value = 440;
-			sourceNode.start(0);
-		} else if(input === 'audio'){
-			sourceNode = audioContext.createBufferSource();
-		    sourceNode.buffer = theBuffer;
-		    sourceNode.loop = true;
-		    sourceNode.start(0);
-		} else {
-			inputs.output.prop('checked', false);
-		}
-		options.input = sourceNode;
+    options.length = inputs.length.val() * 1;
+    options.stopAfterDetection = inputs.stopAfterDetection.is(":checked");
 
-		if(inputs.output.is(':checked')){
-	   		options.output = audioContext.destination;
-		}
+    for (var key in options) {
+      if (/^(min|max)/.test(key)) {
+        delete options[key];
+      }
+    }
 
-		options.length = inputs.length.val() * 1;
-		options.stopAfterDetection = inputs.stopAfterDetection.is(':checked');
+    options.minRms = 1.0 * inputs.minRms.val() || 0.01;
+    var normalize = inputs.normalize.val();
+    if (normalize !== "none") {
+      options.normalize = normalize;
+    } else {
+      options.normalize = false;
+    }
 
-		for(var key in options){
-			if(/^(min|max)/.test(key)){
-				delete options[key];
-			}
-		}
+    var detection = inputs.detection.val();
+    options.minCorrelationIncrease = false;
+    options.minCorrelation = false;
+    if (detection === "correlation") {
+      options.minCorrelation = inputs.minCorrelation.val() * 1.0;
+    } else if (detection === "strength") {
+      options.minCorrelationIncrease =
+        inputs.minCorrelationIncrease.val() * 1.0;
+    }
 
-		options.minRms = 1.0 * inputs.minRms.val() || 0.01;
-		var normalize = inputs.normalize.val();
-		if(normalize !== 'none'){
-			options.normalize = normalize;
-		} else {
-			options.normalize = false;
-		}
+    var range = inputs.range.val(); // Frequency, Period, Note
+    if (range !== "none") {
+      options["min" + range] = inputs.min.val() * 1.0;
+      options["max" + range] = inputs.max.val() * 1.0;
+    }
 
-		var detection = inputs.detection.val();
-		options.minCorrelationIncrease = false;
-		options.minCorrelation = false;
-		if(detection === 'correlation'){
-			options.minCorrelation = inputs.minCorrelation.val() * 1.0;
-		} else if(detection === 'strength') {
-			options.minCorrelationIncrease = inputs.minCorrelationIncrease.val() * 1.0;
-		}
+    options.onDebug = false;
+    options.onDetect = false;
+    options[inputs.draw.val()] = draw;
 
-		var range = inputs.range.val();// Frequency, Period, Note
-		if(range !== 'none'){
-			options['min'+range] = inputs.min.val() * 1.0;
-			options['max'+range] = inputs.max.val() * 1.0;
-		} 
+    options.context = audioContext;
+    if (needsReset || !pitchDetector) {
+      console.log("created PitchDetector", options);
+      pitchDetector = new PitchDetector(options);
+      needsReset = false;
+    } else {
+      pitchDetector.setOptions(options, true);
+    }
+    delete options.context;
+    delete options.output;
+    delete options.input;
+    $("#settings").text(JSON.stringify(options, null, 4));
+    window.pitchDetector = pitchDetector;
 
-		options.onDebug = false;
-		options.onDetect = false;
-		options[inputs.draw.val()] = draw;
+    var data = {};
+    for (x in inputs) {
+      var el = inputs[x];
+      data[x] = el.val();
+    }
+    localStorage.setItem("pitch-detector-settings", JSON.stringify(data));
+  };
 
-		options.context = audioContext;
-		if(needsReset || !pitchDetector){
-			console.log('created PitchDetector',options);
-			pitchDetector = new PitchDetector(options);
-			needsReset = false;
-		} else {
-			pitchDetector.setOptions(options,true);
-		}
-		delete options.context;
-		delete options.output;
-		delete options.input;
-		$('#settings').text(JSON.stringify(options,null,4));
-		window.pitchDetector = pitchDetector;
+  function draw(stats, detector) {
+    drawCanvas(canvas, stats, detector);
 
-		var data = {};
-		for(x in inputs){
-			var el = inputs[x];
-			data[x] = el.val();
-		}
-		localStorage.setItem('pitch-detector-settings',JSON.stringify(data));
-	};
+    // Update Pitch Detection GUI
+    if (!stats.detected) {
+      gui.detector.attr("class", "vague");
+      gui.pitch.text("--");
+      gui.note.text("-");
+      gui.detuneBox.attr("class", "");
+      gui.detune.text("--");
+    } else {
+      gui.detector.attr("class", "confident");
+      var note = detector.getNoteNumber();
+      var detune = detector.getDetune();
+      gui.pitch.text(Math.round(stats.frequency));
+      gui.note.text(detector.getNoteString());
+      if (detune === 0) {
+        gui.detuneBox.attr("class", "");
+        gui.detune.text("--");
+      } else {
+        if (detune < 0) gui.detuneBox.attr("class", "flat");
+        else gui.detuneBox.attr("class", "sharp");
+        gui.detune.text(Math.abs(detune));
+      }
+    }
+  }
 
-	function draw( stats, detector ) {
-		drawCanvas(canvas, stats, detector);
+  var lastPeriod = undefined;
 
-		// Update Pitch Detection GUI
-	 	if (!stats.detected) {
-	 		gui.detector.attr('class','vague');
-	 		gui.pitch.text('--');
-	 		gui.note.text('-');
-	 		gui.detuneBox.attr('class','');
-	 		gui.detune.text('--');
-	 	} else {
-	 		gui.detector.attr('class','confident');
-		 	var note =  detector.getNoteNumber();
-			var detune = detector.getDetune();
-		 	gui.pitch.text( Math.round( stats.frequency ) );
-			gui.note.text(detector.getNoteString());
-			if (detune === 0){
-		 		gui.detuneBox.attr('class','');
-		 		gui.detune.text('--');
-			} else {
-				if (detune < 0)
-	 				gui.detuneBox.attr('class','flat');
-				else
-	 				gui.detuneBox.attr('class','sharp');
-	 			gui.detune.text(Math.abs( detune ));
-			}
-		}
-	}
+  function drawCanvas(canvas, stats, detector) {
+    if (!detector || !detector.buffer) {
+      return;
+    }
 
-	var lastPeriod = undefined;
+    const periodLength = 10;
+    const moddedTime = stats.time % periodLength;
+    const currentPeriod = Math.floor(stats.time / periodLength);
+    const refresh = lastPeriod !== currentPeriod;
 
-	function drawCanvas(canvas, stats, detector){
-		if(!detector || !detector.buffer) {return};
+    if (refresh) {
+      lastPeriod = currentPeriod;
+      canvas.clearRect(0, 0, 512, 256);
+    }
 
-		const periodLength = 10;
-		const moddedTime = (stats.time % periodLength);
-		const currentPeriod = Math.floor(stats.time / periodLength);
-		const refresh = lastPeriod !== currentPeriod;
+    const detectedNote = detector.getNoteString();
 
-		if (refresh) {
-			lastPeriod = currentPeriod;
-			canvas.clearRect(0,0,512,256);
-		}
+    for (let i = 2 * NOTES.length - 1; i >= 0; i--) {
+      const note = NOTES[i % NOTES.length];
+      const baseOctave = 3;
+      const octave = Math.floor(i / NOTES.length) + baseOctave;
+      const noteAndOctave = `${note}${octave}`;
 
-		const detectedNote = detector.getNoteString();
+      if (refresh) {
+        if (note.includes("#")) {
+          canvas.fillStyle = "#ccc";
+        } else {
+          canvas.fillStyle = "#fff";
+        }
+        canvas.fillRect(0, 235 - i * 10, 512, 10);
+      }
 
-		for (let i = 2*NOTES.length - 1; i >=0; i--) {
-			const note = NOTES[i % NOTES.length];
-			const baseOctave = 3;
-			const octave = Math.floor(i / NOTES.length) + baseOctave;
-			const noteAndOctave = `${note}${octave}`;
+      if (noteAndOctave === detectedNote) {
+        canvas.fillStyle = "#080";
+        canvas.fillRect(
+          32 + (480 * moddedTime) / periodLength,
+          235 - i * 10,
+          10,
+          10
+        );
+      }
 
-			if (refresh) {
-				if (note.includes("#")) {
-					canvas.fillStyle = "#ccc";
-				} else {
-					canvas.fillStyle = "#fff";
-				}
-				canvas.fillRect(0,235-(i * 10),512,10);
-			}
-
-			if (noteAndOctave === detectedNote) {
-				canvas.fillStyle = "#080";
-				canvas.fillRect(32 + 480*moddedTime/periodLength,235-(i * 10),10,10);
-			}
-
-			if (refresh) {
-				canvas.fillStyle = "#000";
-				canvas.fillText(noteAndOctave, 10, 245-(i * 10));
-			}
-		}
-
-
-	}
+      if (refresh) {
+        canvas.fillStyle = "#000";
+        canvas.fillText(noteAndOctave, 10, 245 - i * 10);
+      }
+    }
+  }
 });
