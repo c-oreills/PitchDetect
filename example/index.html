@@ -12,6 +12,7 @@ div.vague { color: lightgrey; }
 
 #detector { width: 300px; height: 246px; border: 4px solid gray; border-radius: 8px; text-align: center; padding-top: 10px; display: inline-block; float: left;}
 #waveform {border: 4px solid gray; border-radius: 8px; display: inline-block; width: 535px; height: 256px;  margin-left: 10px; float: left;}
+#explainer,#config,#settings-container { display: none;}
 #flat { display: none; }
 #sharp { display: none; }
 .box {
@@ -41,11 +42,10 @@ code { color: blue; padding: 2px;}
 <script src="gui.js"></script>
 
 <div>
-<h1>Pitch Detector</h1>
-<p>
+<p id="explainer">
 	Calculated using the <a href="http://en.wikipedia.org/wiki/Autocorrelation" target="_blank">auto-correlation</a> algorithm for every frequency.
 </p>
-<table>
+<table id="config">
 <tr>
 	<td>input:</td>
 	<td>
@@ -156,12 +156,12 @@ code { color: blue; padding: 2px;}
 	<td></td>
 	<td>
 		<hr/>
-		<button onclick="start()" id="start">Update PitchDetector</button>
-		<button onclick="stop()" id="stop">Stop</button>
 	</td>
 </tr>
 </table>
 
+<button onclick="start()" id="start">Start/Update</button>
+<button onclick="stop()" id="stop">Stop</button>
 </div>
 <br/>
 
@@ -173,16 +173,10 @@ code { color: blue; padding: 2px;}
 
 <div class="box">
 <canvas id="waveform" width="512" height="256"></canvas>
-<p>
-<strong>Y-Axis</strong>: RMS (Red), Auto-Correlation Increase (Blue), Auto-Correlation Score (Black).
-<br/>
-<strong>X-Axis</strong>: Frequency range (2-512 samples  = 22.05 kHz - 83 Hz = F10 - E2) and detection area (Green)
-</p>
-<h4>Pitch Detector Settings:</h4>
-<pre id="settings"></pre>
+<div id="settings-container">
+	<h4>Pitch Detector Settings:</h4>
+	<pre id="settings"></pre>
 </div>
-
-<a href="https://github.com/cwilso/pitchdetect" style="position: absolute; z-index:2; top: 0; right: 0; border: 0;"><img src="forkme.png" alt="Fork me on GitHub"></a>
-
+</div>
 </body>
 </html>
