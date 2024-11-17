@@ -69,7 +69,7 @@ $(function () {
 
   // Canvas Element
   canvasEl = $("#waveform").get(0);
-  canvas = canvasEl.getContext("2d");
+  var canvas = canvasEl.getContext("2d");
   window.savePic = function () {
     window.open(canvasEl.toDataURL("image/png"));
   };
