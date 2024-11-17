@@ -61,7 +61,6 @@ $(function () {
   // GUI Elements
   var gui = {
     detector: $("#detector"),
-    canvas: $("#waveform"),
     pitch: $("#pitch"),
     note: $("#note"),
     detuneBox: $("#detune"),
