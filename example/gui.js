@@ -24,6 +24,8 @@ SOFTWARE.
 
 window.AudioContext = window.AudioContext || window.webkitAudioContext;
 
+const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
 $(function(){
 	// Global Variables
 	var audioContext;
@@ -259,7 +261,7 @@ $(function(){
 	};
 
 	function draw( stats, detector ) {
-		PitchDetectorCanvasDraw(canvas, stats, detector);
+		drawCanvas(canvas, stats, detector);
 
 		// Update Pitch Detection GUI
 	 	if (!stats.detected) {
@@ -287,4 +289,49 @@ $(function(){
 		}
 	}
 
+	var lastPeriod = undefined;
+
+	function drawCanvas(canvas, stats, detector){
+		if(!detector || !detector.buffer) {return};
+
+		const periodLength = 10;
+		const moddedTime = (stats.time % periodLength);
+		const currentPeriod = Math.floor(stats.time / periodLength);
+		const refresh = lastPeriod !== currentPeriod;
+
+		if (refresh) {
+			lastPeriod = currentPeriod;
+			canvas.clearRect(0,0,512,256);
+		}
+
+		const detectedNote = detector.getNoteString();
+
+		for (let i = 2*NOTES.length - 1; i >=0; i--) {
+			const note = NOTES[i % NOTES.length];
+			const baseOctave = 3;
+			const octave = Math.floor(i / NOTES.length) + baseOctave;
+			const noteAndOctave = `${note}${octave}`;
+
+			if (refresh) {
+				if (note.includes("#")) {
+					canvas.fillStyle = "#ccc";
+				} else {
+					canvas.fillStyle = "#fff";
+				}
+				canvas.fillRect(0,235-(i * 10),512,10);
+			}
+
+			if (noteAndOctave === detectedNote) {
+				canvas.fillStyle = "#080";
+				canvas.fillRect(32 + 480*moddedTime/periodLength,235-(i * 10),10,10);
+			}
+
+			if (refresh) {
+				canvas.fillStyle = "#000";
+				canvas.fillText(noteAndOctave, 10, 245-(i * 10));
+			}
+		}
+
+
+	}
 });
