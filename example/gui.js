@@ -25,6 +25,11 @@ SOFTWARE.
 window.AudioContext = window.AudioContext || window.webkitAudioContext;
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const CANVAS_WIDTH = 800;
+const CANVAS_HEIGHT = 400;
+const NOTE_HEIGHT = 15;
+const OCTAVES_SHOWN = 2;
+const TOTAL_NOTES = NOTES.length * OCTAVES_SHOWN;
 
 $(function () {
   // Global Variables
@@ -309,12 +314,12 @@ $(function () {
 
     if (refresh) {
       lastPeriod = currentPeriod;
-      canvas.clearRect(0, 0, 512, 256);
+      canvas.clearRect(0, 0, 800, 400);
     }
 
     const detectedNote = detector.getNoteString();
 
-    for (let i = 2 * NOTES.length - 1; i >= 0; i--) {
+    for (let i = OCTAVES_SHOWN * NOTES.length - 1; i >= 0; i--) {
       const note = NOTES[i % NOTES.length];
       const baseOctave = 3;
       const octave = Math.floor(i / NOTES.length) + baseOctave;
@@ -326,22 +331,22 @@ $(function () {
         } else {
           canvas.fillStyle = "#fff";
         }
-        canvas.fillRect(0, 235 - i * 10, 512, 10);
+        canvas.fillRect(0, (TOTAL_NOTES - i) * NOTE_HEIGHT, CANVAS_WIDTH, NOTE_HEIGHT);
       }
 
       if (noteAndOctave === detectedNote) {
         canvas.fillStyle = "#080";
         canvas.fillRect(
           32 + (480 * moddedTime) / periodLength,
-          235 - i * 10,
+          (TOTAL_NOTES - i) * NOTE_HEIGHT,
           10,
-          10
+          NOTE_HEIGHT
         );
       }
 
       if (refresh) {
         canvas.fillStyle = "#000";
-        canvas.fillText(noteAndOctave, 10, 245 - i * 10);
+        canvas.fillText(noteAndOctave, 10, 11 + (TOTAL_NOTES - i) * NOTE_HEIGHT);
       }
     }
   }
