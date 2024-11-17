@@ -229,7 +229,7 @@ $(function () {
 
     var detection = inputs.detection.val();
     options.minCorrelationIncrease = false;
-    options.minCorrelation = false;
+    options.minCorrelation = 0.9;
     if (detection === "correlation") {
       options.minCorrelation = inputs.minCorrelation.val() * 1.0;
     } else if (detection === "strength") {

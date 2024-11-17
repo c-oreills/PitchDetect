@@ -12,7 +12,8 @@ div.vague { color: lightgrey; }
 
 #detector { width: 300px; height: 246px; border: 4px solid gray; border-radius: 8px; text-align: center; padding-top: 10px; display: inline-block; float: left;}
 #waveform {border: 4px solid gray; border-radius: 8px; display: inline-block; width: 535px; height: 256px;  margin-left: 10px; float: left;}
-#explainer,#config,#settings-container { display: none;}
+#explainer { display: none;}
+#config,#settings-container { display: none;}
 #flat { display: none; }
 #sharp { display: none; }
 .box {
@@ -105,7 +106,7 @@ code { color: blue; padding: 2px;}
 	<td>
 		<select id="detection">
 			<option value="none">best auto-correlation</option>
-			<option value="correlation">first peak auto-correlation</option>
+			<option value="correlation" selected="true">first peak auto-correlation</option>
 			<option value="strength">first increase in auto-correlation</option>
 		</select>
 		<span class="strength hidden">
