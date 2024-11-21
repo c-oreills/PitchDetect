@@ -249,7 +249,7 @@ $(function () {
 
     options.onDebug = false;
     options.onDetect = false;
-    options[inputs.draw.val()] = draw;
+    options[inputs.draw.val()] = detectCallback;
 
     options.context = audioContext;
     if (needsReset || !pitchDetector) {
@@ -273,31 +273,9 @@ $(function () {
     localStorage.setItem("pitch-detector-settings", JSON.stringify(data));
   };
 
-  function draw(stats, detector) {
+  function detectCallback(stats, detector) {
     drawCanvas(canvas, stats, detector);
-
-    // Update Pitch Detection GUI
-    if (!stats.detected) {
-      gui.detector.attr("class", "vague");
-      gui.pitch.text("--");
-      gui.note.text("-");
-      gui.detuneBox.attr("class", "");
-      gui.detune.text("--");
-    } else {
-      gui.detector.attr("class", "confident");
-      var note = detector.getNoteNumber();
-      var detune = detector.getDetune();
-      gui.pitch.text(Math.round(stats.frequency));
-      gui.note.text(detector.getNoteString());
-      if (detune === 0) {
-        gui.detuneBox.attr("class", "");
-        gui.detune.text("--");
-      } else {
-        if (detune < 0) gui.detuneBox.attr("class", "flat");
-        else gui.detuneBox.attr("class", "sharp");
-        gui.detune.text(Math.abs(detune));
-      }
-    }
+    updateDetectorGUI(stats, detector);
   }
 
   var lastPeriod = undefined;
@@ -347,6 +325,31 @@ $(function () {
       if (refresh) {
         canvas.fillStyle = "#000";
         canvas.fillText(noteAndOctave, 10, 11 + (TOTAL_NOTES - i) * NOTE_HEIGHT);
+      }
+    }
+  }
+
+  function updateDetectorGUI(stats, detector) {
+    // Update Pitch Detection GUI
+    if (!stats.detected) {
+      gui.detector.attr("class", "vague");
+      gui.pitch.text("--");
+      gui.note.text("-");
+      gui.detuneBox.attr("class", "");
+      gui.detune.text("--");
+    } else {
+      gui.detector.attr("class", "confident");
+      var note = detector.getNoteNumber();
+      var detune = detector.getDetune();
+      gui.pitch.text(Math.round(stats.frequency));
+      gui.note.text(detector.getNoteString());
+      if (detune === 0) {
+        gui.detuneBox.attr("class", "");
+        gui.detune.text("--");
+      } else {
+        if (detune < 0) gui.detuneBox.attr("class", "flat");
+        else gui.detuneBox.attr("class", "sharp");
+        gui.detune.text(Math.abs(detune));
       }
     }
   }
