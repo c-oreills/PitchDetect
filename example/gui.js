@@ -22,14 +22,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+/*
+Notes (ha!) on terminology:
+- "note" refers to a musical note in a specific octave (e.g. C4)
+- "octave" refers to the note's octave (e.g. the 4 of C4)
+- "pitch class" refers to the note's position in the chromatic scale (e.g. C of C4)
+*/
+
 window.AudioContext = window.AudioContext || window.webkitAudioContext;
 
-const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 400;
 const NOTE_HEIGHT = 15;
+
+const PITCH_CLASSES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const OCTAVES_SHOWN = 2;
-const TOTAL_NOTES = NOTES.length * OCTAVES_SHOWN;
+const TOTAL_NOTES_SHOWN = PITCH_CLASSES.length * OCTAVES_SHOWN;
 
 $(function () {
   // Global Variables
@@ -297,26 +305,26 @@ $(function () {
 
     const detectedNote = detector.getNoteString();
 
-    for (let i = OCTAVES_SHOWN * NOTES.length - 1; i >= 0; i--) {
-      const note = NOTES[i % NOTES.length];
+    for (let i = OCTAVES_SHOWN * PITCH_CLASSES.length - 1; i >= 0; i--) {
+      const pitchClass = PITCH_CLASSES[i % PITCH_CLASSES.length];
       const baseOctave = 3;
-      const octave = Math.floor(i / NOTES.length) + baseOctave;
-      const noteAndOctave = `${note}${octave}`;
+      const octave = Math.floor(i / PITCH_CLASSES.length) + baseOctave;
+      const note = `${pitchClass}${octave}`;
 
       if (refresh) {
-        if (note.includes("#")) {
+        if (pitchClass.includes("#")) {
           canvas.fillStyle = "#ccc";
         } else {
           canvas.fillStyle = "#fff";
         }
-        canvas.fillRect(0, (TOTAL_NOTES - i) * NOTE_HEIGHT, CANVAS_WIDTH, NOTE_HEIGHT);
+        canvas.fillRect(0, (TOTAL_NOTES_SHOWN - i) * NOTE_HEIGHT, CANVAS_WIDTH, NOTE_HEIGHT);
       }
 
-      if (noteAndOctave === detectedNote) {
+      if (note === detectedNote) {
         canvas.fillStyle = "#080";
         canvas.fillRect(
           32 + (480 * moddedTime) / periodLength,
-          (TOTAL_NOTES - i) * NOTE_HEIGHT,
+          (TOTAL_NOTES_SHOWN - i) * NOTE_HEIGHT,
           10,
           NOTE_HEIGHT
         );
@@ -324,7 +332,7 @@ $(function () {
 
       if (refresh) {
         canvas.fillStyle = "#000";
-        canvas.fillText(noteAndOctave, 10, 11 + (TOTAL_NOTES - i) * NOTE_HEIGHT);
+        canvas.fillText(note, 10, 11 + (TOTAL_NOTES_SHOWN - i) * NOTE_HEIGHT);
       }
     }
   }
