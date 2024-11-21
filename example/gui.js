@@ -31,6 +31,15 @@ Notes (ha!) on terminology:
 
 window.AudioContext = window.AudioContext || window.webkitAudioContext;
 
+// From https://coolors.co/palettes/popular/contrast
+const COLOURS = {
+  blue: "#264653",
+  green: "#2a9d8f",
+  yellow: "#e9c46a",
+  orange: "#f4a261",
+  red: "#e76f51",
+}
+
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 400;
 const NOTE_HEIGHT = 15;
@@ -279,62 +288,102 @@ $(function () {
       data[x] = el.val();
     }
     localStorage.setItem("pitch-detector-settings", JSON.stringify(data));
+
+    setInterval(() => drawCanvas(canvas, pitchDetector), 50);
   };
 
   function detectCallback(stats, detector) {
-    drawCanvas(canvas, stats, detector);
+    recordDetection(stats, detector);
     updateDetectorGUI(stats, detector);
   }
 
-  var lastPeriod = undefined;
+  detectionsByNote = {};
 
-  function drawCanvas(canvas, stats, detector) {
+  function recordDetection(stats, detector) {
+    const note = detector.getNoteString();
+    // Note resolves to NaN if no note is detected
+    if (!note) {
+      return;
+    }
+
+    const detection = {
+      note,
+      time: stats.time,
+      detune: detector.getDetune(),
+    }
+
+    detectionsByNote[note] ??= []
+    detectionsByNote[note].push(detection);
+  }
+
+  function drawCanvas(canvas, detector) {
     if (!detector || !detector.buffer) {
       return;
     }
 
     const periodLength = 10;
-    const moddedTime = stats.time % periodLength;
-    const currentPeriod = Math.floor(stats.time / periodLength);
-    const refresh = lastPeriod !== currentPeriod;
+    const currentPeriod = Math.floor(detector.context.currentTime / periodLength);
+    const currentPeriodStart = currentPeriod * periodLength;
+    const currentPeriodEnd = currentPeriodStart + periodLength;
+    const moddedCurrentTime = detector.context.currentTime % periodLength;
 
-    if (refresh) {
-      lastPeriod = currentPeriod;
-      canvas.clearRect(0, 0, 800, 400);
-    }
+    canvas.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    const detectedNote = detector.getNoteString();
-
-    for (let i = OCTAVES_SHOWN * PITCH_CLASSES.length - 1; i >= 0; i--) {
+    // For each note, draw a line and any detections within this period
+    for (let i = 0; i < OCTAVES_SHOWN * PITCH_CLASSES.length; i++) {
       const pitchClass = PITCH_CLASSES[i % PITCH_CLASSES.length];
       const baseOctave = 3;
       const octave = Math.floor(i / PITCH_CLASSES.length) + baseOctave;
       const note = `${pitchClass}${octave}`;
 
-      if (refresh) {
-        if (pitchClass.includes("#")) {
-          canvas.fillStyle = "#ccc";
-        } else {
-          canvas.fillStyle = "#fff";
-        }
-        canvas.fillRect(0, (TOTAL_NOTES_SHOWN - i) * NOTE_HEIGHT, CANVAS_WIDTH, NOTE_HEIGHT);
+      // Draw sharp notes in grey, natural notes in white
+      if (pitchClass.includes("#")) {
+        canvas.fillStyle = "#ccc";
+      } else {
+        canvas.fillStyle = "#fff";
       }
+      canvas.fillRect(0, (TOTAL_NOTES_SHOWN - i) * NOTE_HEIGHT, CANVAS_WIDTH, NOTE_HEIGHT);
 
-      if (note === detectedNote) {
-        canvas.fillStyle = "#080";
+
+      // Draw any detections for this note within this period
+      for (const detection of detectionsByNote[note] ?? []) {
+        const detectionTime = detection.time;
+        if (detectionTime < currentPeriodStart || detectionTime >= currentPeriodEnd) {
+          continue;
+        }
+        const moddedDetectionTime = detectionTime % periodLength;
+
+        // Draw the detected note
+        canvas.fillStyle = COLOURS.green;
         canvas.fillRect(
-          32 + (480 * moddedTime) / periodLength,
+          32 + (480 * moddedDetectionTime) / periodLength,
           (TOTAL_NOTES_SHOWN - i) * NOTE_HEIGHT,
-          10,
+          1,
           NOTE_HEIGHT
+        );
+
+        // Draw the detune (ranges from -50 to 50)
+        canvas.fillStyle = "#000";
+        canvas.fillRect(
+          32 + (480 * moddedDetectionTime) / periodLength,
+          (TOTAL_NOTES_SHOWN - i) * NOTE_HEIGHT + (50 - detection.detune) * NOTE_HEIGHT / 100,
+          1,
+          1
         );
       }
 
-      if (refresh) {
-        canvas.fillStyle = "#000";
-        canvas.fillText(note, 10, 11 + (TOTAL_NOTES_SHOWN - i) * NOTE_HEIGHT);
-      }
+      canvas.fillStyle = "#000";
+      canvas.fillText(note, 10, 11 + (TOTAL_NOTES_SHOWN - i) * NOTE_HEIGHT);
     }
+
+    // Draw the time marker
+    canvas.fillStyle = "#f00";
+    canvas.fillRect(
+        32 + (480 * moddedCurrentTime) / periodLength,
+        0,
+        1,
+        CANVAS_HEIGHT
+    )
   }
 
   function updateDetectorGUI(stats, detector) {
