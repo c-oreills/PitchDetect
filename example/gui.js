@@ -43,6 +43,8 @@ const COLOURS = {
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 400;
 const NOTE_HEIGHT = 15;
+const LEFT_MARGIN = 32;
+const INNER_CANVAS_WIDTH = CANVAS_WIDTH - LEFT_MARGIN;
 
 const PITCH_CLASSES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const OCTAVES_SHOWN = 2;
@@ -356,16 +358,16 @@ $(function () {
         // Draw the detected note
         canvas.fillStyle = COLOURS.green;
         canvas.fillRect(
-          32 + (480 * moddedDetectionTime) / periodLength,
+          LEFT_MARGIN + (INNER_CANVAS_WIDTH * moddedDetectionTime) / periodLength,
           (TOTAL_NOTES_SHOWN - i) * NOTE_HEIGHT,
-          1,
+          2,
           NOTE_HEIGHT
         );
 
         // Draw the detune (ranges from -50 to 50)
         canvas.fillStyle = "#000";
         canvas.fillRect(
-          32 + (480 * moddedDetectionTime) / periodLength,
+          LEFT_MARGIN + (INNER_CANVAS_WIDTH * moddedDetectionTime) / periodLength,
           (TOTAL_NOTES_SHOWN - i) * NOTE_HEIGHT + (50 - detection.detune) * NOTE_HEIGHT / 100,
           1,
           1
@@ -379,7 +381,7 @@ $(function () {
     // Draw the time marker
     canvas.fillStyle = "#f00";
     canvas.fillRect(
-        32 + (480 * moddedCurrentTime) / periodLength,
+        LEFT_MARGIN + (INNER_CANVAS_WIDTH * moddedCurrentTime) / periodLength,
         0,
         1,
         CANVAS_HEIGHT
