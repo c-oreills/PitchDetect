@@ -458,7 +458,8 @@ $(function () {
   async function detectHeldNote(lengthMs) {
     const maxSamples = lengthMs / SAMPLE_RATE_MS;
 
-    const lastDetectionIndexAtStart = detections.length - 1;
+    // If no detections have been made, we can't slice from -1
+    const lastDetectionIndexAtStart = Math.max(detections.length - 1, 0);
     while (true) {
       await sleep(SAMPLE_RATE_MS*10);
       const detectionsSinceStart = detections.slice(
