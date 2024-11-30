@@ -535,7 +535,7 @@ $(function () {
         const isCorrect = heldNote.majorityNote === note;
 
         if (isCorrect) {
-          gui.exerciseNote.text("⭐️");
+          gui.exerciseNote.text("🌟");
         } else {
           gui.exerciseNote.text("🌚");
         }
