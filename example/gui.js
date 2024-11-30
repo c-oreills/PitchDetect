@@ -51,7 +51,10 @@ const OCTAVES_SHOWN = 2;
 const TOTAL_NOTES_SHOWN = PITCH_CLASSES.length * OCTAVES_SHOWN;
 
 const SAMPLE_RATE_MS = 10;
-const GAPPINESS = 4;
+// Occasionally the detector will drop a lot of samples
+// (e.g. when performance is reduced due to low battery power)
+// Make this configurable.
+const GAPPINESS = 3;
 
 // Radiate from middle C. Keys are note names, values are MIDI numbers.
 const EXERCISE_NOTE_ORDER_MAJOR = new Map([
