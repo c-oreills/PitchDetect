@@ -50,6 +50,30 @@ const PITCH_CLASSES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#
 const OCTAVES_SHOWN = 2;
 const TOTAL_NOTES_SHOWN = PITCH_CLASSES.length * OCTAVES_SHOWN;
 
+const SAMPLE_RATE_MS = 10;
+
+// Radiate from middle C. Keys are note names, values are MIDI numbers.
+const EXERCISE_NOTE_ORDER_MAJOR = new Map([
+  ["C4", 60],
+  ["D4", 62],
+  ["B3", 59],
+  ["E4", 64],
+  ["A3", 57],
+  ["F4", 65],
+  ["G3", 55],
+  ["G4", 67],
+  ["F3", 53],
+  ["A4", 69],
+  ["E3", 52],
+  ["B4", 71],
+  ["D3", 50],
+  ["C3", 48]
+]);
+
+function sleep( ms ) {
+  return new Promise( resolve => setTimeout( resolve, ms ) );
+}
+
 $(function () {
   // Global Variables
   var audioContext;
@@ -90,6 +114,10 @@ $(function () {
     detuneBox: $("#detune"),
     detune: $("#detune_amt"),
   };
+
+  const buttons = {
+    startExerciseMajor: $("#startExerciseMajor"),
+  }
 
   // Canvas Element
   canvasEl = $("#waveform").get(0);
@@ -182,6 +210,8 @@ $(function () {
     });
   };
   request.send();
+
+  buttons.startExerciseMajor.click(runExerciseMajor);
 
   // Global Methods
   window.stopNote = function stopNote() {
@@ -299,6 +329,7 @@ $(function () {
     updateDetectorGUI(stats, detector);
   }
 
+  detections = [];
   detectionsByNote = {};
 
   function recordDetection(stats, detector) {
@@ -314,6 +345,13 @@ $(function () {
       detune: detector.getDetune(),
     }
 
+    const lastRecordedDetection = detections.at(-1);
+    // Rate limit recording detections
+    if (lastRecordedDetection != null && detection.time - lastRecordedDetection.time < 0.001 * SAMPLE_RATE_MS) {
+      return;
+    }
+
+    detections.push(detection);
     detectionsByNote[note] ??= []
     detectionsByNote[note].push(detection);
   }
@@ -411,6 +449,70 @@ $(function () {
         if (detune < 0) gui.detuneBox.attr("class", "flat");
         else gui.detuneBox.attr("class", "sharp");
         gui.detune.text(Math.abs(detune));
+      }
+    }
+  }
+
+  async function detectHeldNote(lengthMs) {
+    const maxSamples = lengthMs / SAMPLE_RATE_MS;
+
+    const lastDetectionIndexAtStart = detections.length - 1;
+    while (true) {
+      await sleep(SAMPLE_RATE_MS*10);
+      const detectionsSinceStart = detections.slice(
+        lastDetectionIndexAtStart
+      );
+
+      if (detectionsSinceStart.length < maxSamples / 3) {
+        continue;
+      }
+
+      const lastDetection = detectionsSinceStart.at(-1);
+      const lastDetectionTime = lastDetection.time;
+      const detectionsWithinLength = detectionsSinceStart.filter(
+        (detection) => detection.time >= lastDetectionTime - lengthMs / 1000
+      );
+
+      if(detectionsWithinLength.length < maxSamples / 3) {
+        continue;
+      }
+
+      const noteCounts = detectionsWithinLength.reduce((counts, detection) => {
+        counts[detection.note] = counts[detection.note] + 1 || 1;
+        return counts;
+      }, {});
+
+      const modalNote = Object.keys(noteCounts).reduce((a, b) =>
+        noteCounts[a] > noteCounts[b] ? a : b
+      );
+      const majorityNote = Object.keys(noteCounts).find((note) =>
+        noteCounts[note] > detectionsWithinLength.length * 0.9
+      );
+      return { modalNote, majorityNote };
+    }
+  }
+
+  async function runExerciseMajor() {
+    const notes = EXERCISE_NOTE_ORDER_MAJOR.keys();
+    while (true) {
+      const note = notes.next().value;
+      if (note == null) {
+        break;
+      }
+
+      const midiNumber = EXERCISE_NOTE_ORDER_MAJOR.get(note);
+      const frequency = window.PitchDetector.prototype.noteToFrequency(midiNumber);
+
+      while (true) {
+        playNote(frequency);
+        await sleep(1000);
+        stopNote();
+
+        const heldNote = await detectHeldNote(1000);
+        await sleep(1000);
+        if (heldNote.majorityNote === note) {
+          break;
+        }
       }
     }
   }

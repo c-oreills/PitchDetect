@@ -299,6 +299,9 @@ PitchDetector.prototype.destroy = function(){
 	this.buffer = null;
 };
 
+PitchDetector.prototype.noteToFrequency = noteToFrequency;
+PitchDetector.prototype.frequencyToString = frequencyToString;
+
 /**
  * Sync methoc to retrieve latest pitch in various forms:
  */
