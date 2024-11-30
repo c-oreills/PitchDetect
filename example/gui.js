@@ -113,6 +113,8 @@ $(function () {
     note: $("#note"),
     detuneBox: $("#detune"),
     detune: $("#detune_amt"),
+    exerciseNote: $("#exerciseNote"),
+    exerciseHeader: $("#exerciseHeader"),
   };
 
   const buttons = {
@@ -485,10 +487,14 @@ $(function () {
       const modalNote = Object.keys(noteCounts).reduce((a, b) =>
         noteCounts[a] > noteCounts[b] ? a : b
       );
-      const majorityNote = Object.keys(noteCounts).find((note) =>
-        noteCounts[note] > detectionsWithinLength.length * 0.9
+      const modalNotePercentage = Math.floor(
+        (100 * noteCounts[modalNote]) / detectionsWithinLength.length
+      ); 
+      const majorityNote = Object.keys(noteCounts).find(
+        (note) => noteCounts[note] > detectionsWithinLength.length * 0.9
       );
-      return { modalNote, majorityNote };
+
+      return { modalNote, modalNotePercentage, majorityNote };
     }
   }
 
@@ -500,6 +506,8 @@ $(function () {
         break;
       }
 
+      gui.exerciseNote.text(note);
+
       const midiNumber = EXERCISE_NOTE_ORDER_MAJOR.get(note);
       const frequency = window.PitchDetector.prototype.noteToFrequency(midiNumber);
 
@@ -509,9 +517,22 @@ $(function () {
         stopNote();
 
         const heldNote = await detectHeldNote(1000);
+
+        gui.exerciseHeader.text(`${heldNote.modalNote} (${heldNote.modalNotePercentage}%)`);
+
+        const isCorrect = heldNote.majorityNote === note;
+
+        if (isCorrect) {
+          gui.exerciseNote.text("⭐️");
+        } else {
+          gui.exerciseNote.text("🌚");
+        }
+
         await sleep(1000);
-        if (heldNote.majorityNote === note) {
+        if (isCorrect) {
           break;
+        } else {
+          gui.exerciseNote.text(note);
         }
       }
     }
