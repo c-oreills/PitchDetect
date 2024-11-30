@@ -118,7 +118,8 @@ $(function () {
   };
 
   const buttons = {
-    startExerciseMajor: $("#startExerciseMajor"),
+    startExerciseMajorPrompted: $("#startExerciseMajorPrompted"),
+    startExerciseMajorUnprompted: $("#startExerciseMajorUnprompted"),
   }
 
   // Canvas Element
@@ -213,7 +214,8 @@ $(function () {
   };
   request.send();
 
-  buttons.startExerciseMajor.click(runExerciseMajor);
+  buttons.startExerciseMajorPrompted.click(() => runExerciseMajor(true));
+  buttons.startExerciseMajorUnprompted.click(() => runExerciseMajor(false));
 
   // Global Methods
   window.stopNote = function stopNote() {
@@ -499,7 +501,7 @@ $(function () {
     }
   }
 
-  async function runExerciseMajor() {
+  async function runExerciseMajor(prompted) {
     const notes = EXERCISE_NOTE_ORDER_MAJOR.keys();
     while (true) {
       const note = notes.next().value;
@@ -510,16 +512,21 @@ $(function () {
       gui.exerciseNote.text(note);
 
       const midiNumber = EXERCISE_NOTE_ORDER_MAJOR.get(note);
-      const frequency = window.PitchDetector.prototype.noteToFrequency(midiNumber);
+      const frequency =
+        window.PitchDetector.prototype.noteToFrequency(midiNumber);
 
       while (true) {
-        playNote(frequency);
-        await sleep(1000);
-        stopNote();
+        if (prompted) {
+          playNote(frequency);
+          await sleep(1000);
+          stopNote();
+        }
 
         const heldNote = await detectHeldNote(1000);
 
-        gui.exerciseHeader.text(`${heldNote.modalNote} (${heldNote.modalNotePercentage}%)`);
+        gui.exerciseHeader.text(
+          `${heldNote.modalNote} (${heldNote.modalNotePercentage}%)`
+        );
 
         const isCorrect = heldNote.majorityNote === note;
 
