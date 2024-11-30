@@ -331,6 +331,8 @@ $(function () {
 
     canvas.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
+    // TODO: https://github.com/gdenisov/cardinal-spline-js smooth lines between points
+
     // For each note, draw a line and any detections within this period
     for (let i = 0; i < OCTAVES_SHOWN * PITCH_CLASSES.length; i++) {
       const pitchClass = PITCH_CLASSES[i % PITCH_CLASSES.length];
