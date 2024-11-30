@@ -51,6 +51,7 @@ const OCTAVES_SHOWN = 2;
 const TOTAL_NOTES_SHOWN = PITCH_CLASSES.length * OCTAVES_SHOWN;
 
 const SAMPLE_RATE_MS = 10;
+const GAPPINESS = 4;
 
 // Radiate from middle C. Keys are note names, values are MIDI numbers.
 const EXERCISE_NOTE_ORDER_MAJOR = new Map([
@@ -468,7 +469,7 @@ $(function () {
         lastDetectionIndexAtStart
       );
 
-      if (detectionsSinceStart.length < maxSamples / 3) {
+      if (detectionsSinceStart.length < maxSamples / GAPPINESS) {
         continue;
       }
 
@@ -478,7 +479,7 @@ $(function () {
         (detection) => detection.time >= lastDetectionTime - lengthMs / 1000
       );
 
-      if(detectionsWithinLength.length < maxSamples / 3) {
+      if(detectionsWithinLength.length < maxSamples / GAPPINESS) {
         continue;
       }
 
