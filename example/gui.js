@@ -256,8 +256,20 @@ $(function () {
     pitchDetector = null;
   };
 
+  // Stops screen from dimming
+  async function getWakelock() {
+    try {
+      const wakeLock = await navigator.wakeLock.request("screen");
+    } catch (err) {
+      // the wake lock request fails - usually system related, such being low on battery
+      console.log(`${err.name}, ${err.message}`);
+    }
+  }
+
   window.start = function start() {
     audioContext = new AudioContext();
+
+    getWakelock();
 
     if (needsReset && pitchDetector) {
       pitchDetector.destroy();
