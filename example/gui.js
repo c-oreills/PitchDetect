@@ -38,7 +38,7 @@ const COLOURS = {
   yellow: "#e9c46a",
   orange: "#f4a261",
   red: "#e76f51",
-}
+};
 
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 400;
@@ -46,7 +46,20 @@ const NOTE_HEIGHT = 15;
 const LEFT_MARGIN = 32;
 const INNER_CANVAS_WIDTH = CANVAS_WIDTH - LEFT_MARGIN;
 
-const PITCH_CLASSES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const PITCH_CLASSES = [
+  "C",
+  "C#",
+  "D",
+  "D#",
+  "E",
+  "F",
+  "F#",
+  "G",
+  "G#",
+  "A",
+  "A#",
+  "B",
+];
 const OCTAVES_SHOWN = 2;
 const TOTAL_NOTES_SHOWN = PITCH_CLASSES.length * OCTAVES_SHOWN;
 
@@ -71,11 +84,11 @@ const EXERCISE_NOTE_ORDER_MAJOR = new Map([
   ["E3", 52],
   ["B4", 71],
   ["D3", 50],
-  ["C3", 48]
+  ["C3", 48],
 ]);
 
-function sleep( ms ) {
-  return new Promise( resolve => setTimeout( resolve, ms ) );
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 $(function () {
@@ -124,7 +137,7 @@ $(function () {
   const buttons = {
     startExerciseMajorPrompted: $("#startExerciseMajorPrompted"),
     startExerciseMajorUnprompted: $("#startExerciseMajorUnprompted"),
-  }
+  };
 
   // Canvas Element
   canvasEl = $("#waveform").get(0);
@@ -351,16 +364,19 @@ $(function () {
       note,
       time: stats.time,
       detune: detector.getDetune(),
-    }
+    };
 
     const lastRecordedDetection = detections.at(-1);
     // Rate limit recording detections
-    if (lastRecordedDetection != null && detection.time - lastRecordedDetection.time < 0.001 * SAMPLE_RATE_MS) {
+    if (
+      lastRecordedDetection != null &&
+      detection.time - lastRecordedDetection.time < 0.001 * SAMPLE_RATE_MS
+    ) {
       return;
     }
 
     detections.push(detection);
-    detectionsByNote[note] ??= []
+    detectionsByNote[note] ??= [];
     detectionsByNote[note].push(detection);
   }
 
@@ -370,7 +386,9 @@ $(function () {
     }
 
     const periodLength = 10;
-    const currentPeriod = Math.floor(detector.context.currentTime / periodLength);
+    const currentPeriod = Math.floor(
+      detector.context.currentTime / periodLength
+    );
     const currentPeriodStart = currentPeriod * periodLength;
     const currentPeriodEnd = currentPeriodStart + periodLength;
     const moddedCurrentTime = detector.context.currentTime % periodLength;
@@ -392,13 +410,20 @@ $(function () {
       } else {
         canvas.fillStyle = "#fff";
       }
-      canvas.fillRect(0, (TOTAL_NOTES_SHOWN - i) * NOTE_HEIGHT, CANVAS_WIDTH, NOTE_HEIGHT);
-
+      canvas.fillRect(
+        0,
+        (TOTAL_NOTES_SHOWN - i) * NOTE_HEIGHT,
+        CANVAS_WIDTH,
+        NOTE_HEIGHT
+      );
 
       // Draw any detections for this note within this period
       for (const detection of detectionsByNote[note] ?? []) {
         const detectionTime = detection.time;
-        if (detectionTime < currentPeriodStart || detectionTime >= currentPeriodEnd) {
+        if (
+          detectionTime < currentPeriodStart ||
+          detectionTime >= currentPeriodEnd
+        ) {
           continue;
         }
         const moddedDetectionTime = detectionTime % periodLength;
@@ -406,7 +431,8 @@ $(function () {
         // Draw the detected note
         canvas.fillStyle = COLOURS.green;
         canvas.fillRect(
-          LEFT_MARGIN + (INNER_CANVAS_WIDTH * moddedDetectionTime) / periodLength,
+          LEFT_MARGIN +
+            (INNER_CANVAS_WIDTH * moddedDetectionTime) / periodLength,
           (TOTAL_NOTES_SHOWN - i) * NOTE_HEIGHT,
           2,
           NOTE_HEIGHT
@@ -415,8 +441,10 @@ $(function () {
         // Draw the detune (ranges from -50 to 50)
         canvas.fillStyle = "#000";
         canvas.fillRect(
-          LEFT_MARGIN + (INNER_CANVAS_WIDTH * moddedDetectionTime) / periodLength,
-          (TOTAL_NOTES_SHOWN - i) * NOTE_HEIGHT + (50 - detection.detune) * NOTE_HEIGHT / 100,
+          LEFT_MARGIN +
+            (INNER_CANVAS_WIDTH * moddedDetectionTime) / periodLength,
+          (TOTAL_NOTES_SHOWN - i) * NOTE_HEIGHT +
+            ((50 - detection.detune) * NOTE_HEIGHT) / 100,
           1,
           1
         );
@@ -429,11 +457,11 @@ $(function () {
     // Draw the time marker
     canvas.fillStyle = "#f00";
     canvas.fillRect(
-        LEFT_MARGIN + (INNER_CANVAS_WIDTH * moddedCurrentTime) / periodLength,
-        0,
-        1,
-        CANVAS_HEIGHT
-    )
+      LEFT_MARGIN + (INNER_CANVAS_WIDTH * moddedCurrentTime) / periodLength,
+      0,
+      1,
+      CANVAS_HEIGHT
+    );
   }
 
   function updateDetectorGUI(stats, detector) {
@@ -467,10 +495,8 @@ $(function () {
     // If no detections have been made, we can't slice from -1
     const lastDetectionIndexAtStart = Math.max(detections.length - 1, 0);
     while (true) {
-      await sleep(SAMPLE_RATE_MS*10);
-      const detectionsSinceStart = detections.slice(
-        lastDetectionIndexAtStart
-      );
+      await sleep(SAMPLE_RATE_MS * 10);
+      const detectionsSinceStart = detections.slice(lastDetectionIndexAtStart);
 
       if (detectionsSinceStart.length < maxSamples / GAPPINESS) {
         continue;
@@ -482,7 +508,7 @@ $(function () {
         (detection) => detection.time >= lastDetectionTime - lengthMs / 1000
       );
 
-      if(detectionsWithinLength.length < maxSamples / GAPPINESS) {
+      if (detectionsWithinLength.length < maxSamples / GAPPINESS) {
         continue;
       }
 
@@ -496,7 +522,7 @@ $(function () {
       );
       const modalNotePercentage = Math.floor(
         (100 * noteCounts[modalNote]) / detectionsWithinLength.length
-      ); 
+      );
       const majorityNote = Object.keys(noteCounts).find(
         (note) => noteCounts[note] > detectionsWithinLength.length * 0.9
       );
