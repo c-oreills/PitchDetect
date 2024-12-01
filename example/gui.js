@@ -506,15 +506,16 @@ $(function () {
   }
 
   async function runExerciseMajor(prompted) {
-    const notes = EXERCISE_NOTE_ORDER_MAJOR.keys();
+    const notes = (function* () {
+      while (true) {
+        for (const note of EXERCISE_NOTE_ORDER_MAJOR.keys()) {
+          yield note;
+        }
+      }
+    })();
+
     while (true) {
       const note = notes.next().value;
-      if (note == null) {
-        break;
-      }
-
-      gui.exerciseNote.text(note);
-
       const midiNumber = EXERCISE_NOTE_ORDER_MAJOR.get(note);
       const frequency =
         window.PitchDetector.prototype.noteToFrequency(midiNumber);
