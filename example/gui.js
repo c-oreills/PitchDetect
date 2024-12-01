@@ -231,8 +231,12 @@ $(function () {
   };
   request.send();
 
-  buttons.startExerciseMajorPrompted.click(() => runExerciseMajor(true));
-  buttons.startExerciseMajorUnprompted.click(() => runExerciseMajor(false));
+  buttons.startExerciseMajorPrompted.click(() =>
+    runExerciseMajor({ prompted: true, minNote: "G3", maxNote: "G4" })
+  );
+  buttons.startExerciseMajorUnprompted.click(() =>
+    runExerciseMajor({ prompted: false, minNote: "G3", maxNote: "G4" })
+  );
 
   // Global Methods
   window.stopNote = function stopNote() {
@@ -543,7 +547,7 @@ $(function () {
     }
   }
 
-  async function runExerciseMajor(prompted) {
+  async function runExerciseMajor({ prompted, minNote, maxNote }) {
     const notes = (function* () {
       while (true) {
         for (const note of EXERCISE_NOTE_ORDER_MAJOR.keys()) {
@@ -555,6 +559,13 @@ $(function () {
     while (true) {
       const note = notes.next().value;
       const midiNumber = EXERCISE_NOTE_ORDER_MAJOR.get(note);
+      if (minNote && midiNumber < EXERCISE_NOTE_ORDER_MAJOR.get(minNote)) {
+        continue;
+      }
+      if (maxNote && midiNumber > EXERCISE_NOTE_ORDER_MAJOR.get(maxNote)) {
+        continue;
+      }
+
       const frequency =
         window.PitchDetector.prototype.noteToFrequency(midiNumber);
 
